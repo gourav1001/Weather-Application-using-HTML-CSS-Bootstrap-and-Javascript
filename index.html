@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Live Weather</title>
+  <link rel="icon" type="image/x-icon" href="./icons/weather-icon.png">
+  <!-- bootstrap css cdn -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous" />
+  <!-- font awesome v6.3.0 cdn -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css"
+    integrity="sha512-SzlrxWUlpfuzQ+pcUCosxcglQRNAq/DZjVsC0lE40xsADsfeQoEypE+enwcOiGjk/bSuGGKHEyjSoQ1zVisanQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <!-- custom css stylesheet -->
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+
+<body>
+  <!-- navbar section with search bar -->
+  <nav class="navbar bg-body-tertiary">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="./index.html"><span><img height="5%" width="5%" src="./icons/weather-icon.png"
+            alt="weather icon page logo"></span> <span>Live Weather</span></a>
+      <form class="d-flex" role="search">
+        <input class="form-control me-2" required id="cityName" type="search" placeholder="Enter your city name"
+          aria-label="Search" />
+        <button class="btn btn-outline-success" id="btnSearch" type="submit">Search</button>
+      </form>
+    </div>
+  </nav>
+
+  <!-- page spinner loader -->
+  <div id="pageLoadSpinnerWrapper">
+    <div class="d-flex justify-content-center">
+      <div id="pageLoadSpinner" class="spinner-border text-primary" role="status"></div>
+    </div>
+  </div>
+
+  <!-- toast for search error template -->
+  <script id="toastSearchErrorTemplate" type="text/x-handlebars-template">
+    <div id="toastSearchErrorNotification" class="toast text-bg-primary" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <img height="7%" width="7%" src="./icons/weather-icon.png" alt="weather icon page logo">
+        <strong class="me-auto">Live Weather</strong>
+        <small>just now</small>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body">
+        {{ message }}
+      </div>
+    </div>
+  </script>
+
+  <!-- toast container for displaying error notifications -->
+  <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3">
+    <!-- toast container for holding error notifications -->
+  </div>
+
+  <!-- main page body content-->
+  <div class="container">
+
+    <!-- weather of city entered header -->
+    <div class="row">
+      <div class="col text-center display-6 mt-4 mb-4">
+        <h1><i class="fa-solid fa-cloud-sun-rain"></i><span id="weatherCityHeader" style="margin-left: 5%;">Weather of
+            ----</span>
+        </h1>
+        <hr style="width: 70%; margin-left: 15%;" />
+      </div>
+    </div>
+
+    <!-- template for error encountered from weather api -->
+    <script id="weatherApiErrorTemplate" type="text/x-handlebars-template">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="errorMessageModalLabel">Weather API Error</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger" role="alert">
+          <span><i class="fa-solid fa-triangle-exclamation"></i><span id="errorMessageText">Internal server error
+            while fetching weather data! Please try again after sometime</span><i
+            class="fa-solid fa-face-frown"></i></span>
+        </div>
+      </div>
+    </script>
+
+    <!-- template for error encountered from AQI api -->
+    <script id="aqiApiErrorTemplate" type="text/x-handlebars-template">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="errorMessageModalLabel">Air Quality Index (AQI) API Error</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger" role="alert">
+          <span><i class="fa-solid fa-triangle-exclamation"></i><span id="errorMessageText">Internal server error
+            while fetching air quality index data! Please try again after sometime</span><i
+            class="fa-solid fa-face-frown"></i></span>
+        </div>
+      </div>
+    </script>
+
+    <!-- template for error encountered from geolocation api -->
+    <script id="geolocationApiErrorTemplate" type="text/x-handlebars-template">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="errorMessageModalLabel">Geolocation API Error</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger" role="alert">
+          <span><i class="fa-solid fa-triangle-exclamation"></i><span id="errorMessageText">{{ message }}</span><i
+          class="fa-solid fa-face-frown"></i></span>
+        </div>
+      </div>
+    </script>
+
+    <!-- Error message Modal -->
+    <div class="modal fade" id="errorMessageModal" data-bs-backdrop="static" data-bs-keyboard="true" tabindex="-1"
+      aria-labelledby="errorMessageModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div id="errorModalContent">
+            <!-- modal body for displaying required error message -->
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-errorModal-close"
+              data-bs-dismiss="modal">Dismiss</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- boostrap cards for displaying temperature, wind speed and other weather info -->
+    <div class="row row-cols-1 row-cols-md-3 mt-3 mb-3 text-center">
+      <!-- temperature card section -->
+      <div class="col">
+        <div class="card mb-4 rounded-3 shadow-sm border-primary">
+          <div class="card-header py-3 text-bg-primary border-primary">
+            <h4 class="my-0 fw-normal"><i class="fa-solid fa-temperature-high"></i><span
+                style="margin-left: 5%;">Temperature</span></h4>
+          </div>
+          <div class="card-body">
+            <h1 class="card-title pricing-card-title">
+              <span id="currTemp">--</span><sup><small class="text-muted fw-light"><span>&#8451;</span></small></sup>
+            </h1>
+            <ul class="list-unstyled mt-3 mb-4">
+              <li>
+                Maximum Temperature: <span id="currMaxTemp">--</span><sup><small
+                    class="text-muted fw-light"><span>&#8451;</span></small></sup>
+              </li>
+              <li>
+                Minimum Temperature: <span id="currMinTemp">--</span><sup><small
+                    class="text-muted fw-light"><span>&#8451;</span></small></sup>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <!-- wind info section -->
+      <div class="col">
+        <div class="card mb-4 rounded-3 shadow-sm border-primary">
+          <div class="card-header py-3 text-bg-primary border-primary">
+            <h4 class="my-0 fw-normal"><i class="fa-sharp fa-solid fa-wind"></i><span
+                style="margin-left: 5%;">Wind</span>
+            </h4>
+          </div>
+          <div class="card-body">
+            <h1 class="card-title pricing-card-title">
+              <span id="currWind">--</span><small class="text-muted fw-light"><span>Km/hr</span></small>
+            </h1>
+            <ul class="list-unstyled mt-3 mb-4">
+              <li>Wind Speed: <span id="currWindSpeed">--</span><small
+                  class="text-muted fw-light"><span>Km/hr</span></small></li>
+              <li>Wind Degrees: <span id="currWindDegrees">--</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <!-- Humidity info section -->
+      <div class="col">
+        <div class="card mb-4 rounded-3 shadow-sm border-primary">
+          <div class="card-header py-3 text-bg-primary border-primary">
+            <h4 class="my-0 fw-normal"><i class="fa-solid fa-cloud-rain"></i><span
+                style="margin-left: 5%;">Humidity</span></h4>
+          </div>
+          <div class="card-body">
+            <h1 class="card-title pricing-card-title">
+              <span id="currHumidityInfo">--</span><small class="text-muted fw-light"><span>%</span></small>
+            </h1>
+            <ul class="list-unstyled mt-3 mb-4">
+              <li>Humidity: <span id="currHumidity">--</span><small class="text-muted fw-light"><span>%</span></small>
+              </li>
+              <li>Cloud Cover: <span id="currCloudCover">--</span><small
+                  class="text-muted fw-light"><span>%</span></small>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- air quality index report header-->
+    <div class="row">
+      <div class="col text-center display-6 mb-4 mt-4">
+        <h1><i class="fa-solid fa-cloud"></i><span id="aqiCityHeader" style="margin-left: 5%;">Air Quality Index
+            (AQI) of ----</span>
+        </h1>
+        <hr style="width: 80%; margin-left: 10%;" />
+      </div>
+    </div>
+
+    <!-- AQI table data template for pollurtants -->
+    <script id="aqiTableDataTemplate" type="text/x-handlebars-template">
+      <tr>
+        <th scope="row" class="text-start">{{ pollutant }}</th>
+        <td>
+          <div class="progress" role="progressbar" aria-valuenow="{{ aqi }}" aria-valuemin="0" aria-valuemax="500">
+            <div class="progress-bar progress-bar-striped progress-bar-animated"style="width: {{ width }}%; background-color: {{ bgColor }};">
+              {{ aqi }}
+            </div>
+          </div>
+        </td>
+        <td>{{ concentration }} <small class="text-muted fw-light"><span><span>&#181;</span><span>/m<sup>3</sup></span></span></small></td>
+        <td>{{ concernLevel }} </td>
+      </tr>
+    </script>
+
+    <!-- Overall air aquality index template -->
+    <script id="overallAqiDataTemplate" type="text/x-handlebars-template">
+      <tr>
+        <th scope="row" class="text-start">{{ mainPollutant }}</th>
+        <td>
+          <div class="progress" role="progressbar" aria-valuenow="{{ aqi }}" aria-valuemin="0" aria-valuemax="500">
+            <div class="progress-bar progress-bar-striped progress-bar-animated"style="width: {{ width }}%; background-color: {{ bgColor }};">
+              {{ aqi }}
+            </div>
+          </div>
+        </td>
+        <td>{{ concernLevel }}</td>
+      </tr>
+    </script>
+
+    <!-- overall air quality section -->
+    <div class="table-responsive mt-3 mb-4">
+      <table class="table text-center">
+        <thead>
+          <tr>
+            <th scope="row" class="text-start" style="width: 20%">Main Pollutant</th>
+            <th style="width: 60%">Air Aquality Index (AQI)</th>
+            <th style="width: 20%">Overall air quality</th>
+          </tr>
+        </thead>
+        <tbody id="overallAqiTableData">
+          <!-- Overall AQI table containing fetched AQI data using the template -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- air quality index table data section for pollutants -->
+    <div class="table-responsive mt-3 mb-4">
+      <table class="table text-center">
+        <thead>
+          <tr>
+            <th scope="row" class="text-start" style="width: 10%">Pollutants</th>
+            <th style="width: 50%">Air Aquality Index (AQI)</th>
+            <th style="width: 10%">Concentration</th>
+            <th style="width: 30%">Concern Level</th>
+          </tr>
+        </thead>
+        <tbody id="aqiTableData">
+          <!-- pollutant table containing fetched AQI data using the template -->
+        </tbody>
+      </table>
+    </div>
+
+
+    <!-- weather of other cities info section header-->
+    <div class="row" id="mostCommonCityHeader">
+      <div class="col display-6 text-center mt-4 mb-4">
+        <h2><span>Weather report of some other common cities in India</span>
+        </h2>
+      </div>
+      <hr style="width: 80%; margin-left: 10%;" />
+    </div>
+
+    <!-- weather table data template -->
+    <script id="weatherTableDataTemplate" type="text/x-handlebars-template">
+      <tr>
+        <th scope="row" class="text-start">{{ cityName }}</th>
+        <td>{{ temp }} <sup><small class="text-muted fw-light"><span>&#8451;</span></small></sup></td>
+        <td>{{ min_temp }} <sup><small class="text-muted fw-light"><span>&#8451;</span></small></sup></td>
+        <td>{{ max_temp }} <sup><small class="text-muted fw-light"><span>&#8451;</span></small></sup></td>
+        <td>{{ wind_speed }} <small class="text-muted fw-light"><span>Km/hr</span></small></td>
+        <td>{{ wind_degrees }}</td>
+        <td>{{ humidity }} <small class="text-muted fw-light"><span>%</span></small></td>
+        <td>{{ cloud_pct }} <small class="text-muted fw-light"><span>%</span></small></td>
+      </tr>
+    </script>
+
+    <!-- weather of other cities info section -->
+    <div class="table-responsive mt-3 mb-4">
+      <table class="table table-hover table-striped text-center">
+        <thead>
+          <tr>
+            <th style="width: 16%"></th>
+            <th style="width: 12%">Temperature</th>
+            <th style="width: 12%">Min. temp.</th>
+            <th style="width: 12%">Max. temp.</th>
+            <th style="width: 12%">Wind speed</th>
+            <th style="width: 12%">Wind degrees</th>
+            <th style="width: 12%">Humidity</th>
+            <th style="width: 12%">Cloud Cover</th>
+          </tr>
+        </thead>
+        <tbody id="weatherTableData">
+          <!-- weather table containing fetched weather data using the template -->
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+  <!-- bootstrap v5.3.0 js cdn -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN"
+    crossorigin="anonymous"></script>
+  <!-- jquery v3.6.4 cdn -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"
+    integrity="sha512-pumBsjNRGGqkPzKHndZMaAG+bir374sORyzM3uulLV14lN5LyykqNk8eEeUlUkB3U0M4FApyaHraT65ihJhDpQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <!-- handlebars v4.7.7 cdn -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.7/handlebars.min.js"
+    integrity="sha512-RNLkV3d+aLtfcpEyFG8jRbnWHxUqVZozacROI4J2F1sTaDqo1dPQYs01OMi1t1w9Y2FdbSCDSQ2ZVdAC8bzgAg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <!-- custom js script -->
+  <script type="module" src="./js/script.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,34 @@
+#currTemp,
+#currWind,
+#currHumidityInfo {
+    margin: 2%;
+}
+
+#currMaxTemp,
+#currMinTemp,
+#currWindSpeed,
+#currWindDegrees,
+#currHumidity,
+#currCloudCover,
+#errorMessageText {
+    margin: 1%;
+}
+
+#pageLoadSpinnerWrapper{
+    background-color: #fff;
+    position: fixed;
+    top:0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 99999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+#pageLoadSpinner{
+    width: 5em;
+    height: 5em;
+}
